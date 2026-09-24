@@ -5,8 +5,9 @@ EMPLOYEES = [
     {"id": 1, "name": "John", "salary": 100000},
     {"id": 2, "name": "Jane", "salary": 120000},
     {"id": 3, "name": "Mike", "salary": 90000},
+    
+   
 ]
-
 
 def print_employees(employees):
     """Print every employee on its own line."""
