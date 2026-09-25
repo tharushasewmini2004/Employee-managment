@@ -50,3 +50,21 @@ Each operation is a separate reusable function that takes the employee list as i
   
   ## Author
 Tharusha – Intern, Day 1 submission
+
+# Day 2 – OOP & Application Architecture
+### Files
+- `employee.py` – Employee class (Assignment C)
+- `employee_repository.py` – in-memory EmployeeRepository (Assignment D)
+- `run_day2.py` – demo of all Day 2 features: `python run_day2.py`
+- `ARCHITECTURE.md` – Hard Scenario: layered architecture and diagram
+### Design decisions
+- Salary is stored as a **monthly** amount, so `calculate_annual_salary()` returns salary × 12.
+- Invalid salaries raise `ValueError`, so an Employee object can never hold a negative salary.
+ A failed `update_salary()` keeps the old salary.
+- The repository returns `None` (get/update) or `False` (delete) when an ID does not exist,
+ and raises `ValueError` for duplicate IDs. 
+
+
+ ## Author
+Tharusha – Intern, Day 2 submission
+
