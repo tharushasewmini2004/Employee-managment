@@ -68,3 +68,17 @@ Tharusha – Intern, Day 1 submission
  ## Author
 Tharusha – Intern, Day 2 submission
 
+## Day 3 – FastAPI & REST
+
+### Run the API
+
+```bash
+
+pip install -r requirements.txt
+
+uvicorn api:app --reload
+## Author
+Tharusha – Intern, Day 3 submission
+
+
+ 
