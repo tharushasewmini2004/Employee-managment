@@ -14,14 +14,14 @@ to the layer directly below it.
 | Repositories (data access) | All database queries. Nothing else touches the database. | `repositories/employee_repository.py` |
 | Models | Database tables (SQLAlchemy). | `models/employee.py` |
 ## Diagram
-"""mermaid
+```mermaid
 flowchart TD
    C[Client / Browser] --> R[Routes - API layer]
    R --> S[Schemas - validation]
    R --> SV[Services - business logic]
    SV --> RP[Repositories - data access]
    RP --> DB[(PostgreSQL database)]
-"""
+```
 Simple text version:
    Client -> Routes -> Services -> Repositories -> Database
                 |
@@ -41,4 +41,3 @@ Simple text version:
 ## How Day 2 already follows this
 - "Employee" class holds the business rules (salary validation).
 - "EmployeeRepository" is the data access layer (in memory today, PostgreSQL on Day 4).
-
