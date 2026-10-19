@@ -81,4 +81,90 @@ uvicorn api:app --reload
 Tharusha – Intern, Day 3 submission
 
 
+## Day 4 – PostgreSQL & SQLAlchemy
+
+### Architecture
+FastAPI → Service Layer → Repository Layer → SQLAlchemy → PostgreSQL
+
+| Layer | File | Responsibility |
+|---|---|---|
+| API (routes) | `app/main.py` | Endpoints, status codes, error handlers |
+| Schemas | `app/schemas.py` | Pydantic validation and response shapes |
+| Service | `app/services.py` | Business rules, foreign key and duplicate checks, transactions |
+| Repository | `app/repositories.py` | All database queries (CRUD) |
+| Models | `app/models.py` | Department, Employee and Leave tables and relationships |
+| Database | `app/database.py` | Engine, session and connection management |
+
+### Setup
+1. Install PostgreSQL and create a database called `employee_db`.
+2. Copy `.env.example` to `.env` and put in your PostgreSQL password
+   (write `@` in the password as `%40`).
+3. Install packages and create the tables:
+```bash
+python -m pip install -r requirements.txt
+python create_tables.py
+```
+4. Run the API and open http://127.0.0.1:8000/docs
+```bash
+python -m uvicorn app.main:app --reload
+```
+
+### Endpoints
+| Method | URL | Success | Errors |
+|---|---|---|---|
+| POST | /departments | 201 | 409 duplicate name, 422 |
+| GET | /departments | 200 | |
+| POST | /employees | 201 | 409 duplicate email, 422 invalid data or department |
+| GET | /employees (filters: department_id, status, min_salary) | 200 | |
+| GET | /employees/{id} | 200 | 404 |
+| PUT | /employees/{id} | 200 | 404, 409, 422 |
+| DELETE | /employees/{id} | 204 | 404 |
+| POST | /employees/{id}/leave | 201 | 404, 422 |
+| GET | /employees/{id}/leave | 200 | 404 |
+
+### Relationships
+- One department → many employees (`employees.department_id` is a foreign key)
+- One employee → many leave records (`leaves.employee_id` is a foreign key)
+
+### Day 4 Hard Scenarios
+
+**1. A request contains department_id=999. What should happen?**
+The request is rejected with **422** and the message "Department 999 does not exist",
+and nothing is saved. The service layer checks that the department exists before creating
+or updating an employee, so the client gets a clear message. The database foreign key
+is a second safety net if a department disappears between the check and the save.
+
+**2. Two users update the same employee nearly simultaneously. What problems could occur?**
+- **Lost update:** both users read the same employee, and the second save silently
+  overwrites the first user's change.
+- **Race conditions on unique values:** two requests can both pass the "email is free"
+  check, then both try to save the same email.
+
+How they are handled or can be handled:
+- The database **unique constraint** rejects the second email; the service catches the
+  `IntegrityError`, rolls back, and returns **409** (already implemented).
+- **Optimistic locking:** add a `version` column that increases on every update. An update
+  only succeeds if the version has not changed since it was read; otherwise the API
+  returns 409 and the user reloads and retries. SQLAlchemy supports this with `version_id_col`.
+- **Pessimistic locking:** lock the row while updating with `SELECT ... FOR UPDATE`
+  (`with_for_update()` in SQLAlchemy), so the second user waits.
+
+**3. Employee creation succeeds but a related operation fails. How should the transaction behave?**
+All changes must be **rolled back**, so the database is left exactly as it was before.
+Related changes are atomic: they all succeed together or all fail together. The
+`transaction()` block in `app/services.py` commits only if every step succeeds, and
+calls `rollback()` on any error. Example: deleting an employee also rejects their
+pending leave in the same transaction, so we can never end up with a deleted employee
+whose leave is still waiting for approval. The client receives an error and can safely retry.
+
+**4. Should DELETE physically remove an employee? Explain an alternative such as soft delete.**
+No. Physically deleting an employee would also lose their leave history and break
+references from other records, and it cannot be undone. This API uses **soft delete**:
+DELETE fills the `deleted_at` column with the current time and keeps the row. Deleted
+employees are hidden from every GET endpoint, but their data is kept for history,
+reporting and audits, and can be restored by clearing `deleted_at`.
+Trade-offs: every query must filter out deleted rows, and a deleted employee's email
+stays reserved because the unique constraint still applies. For privacy rules, old
+records may eventually need to be anonymised or permanently removed.
+
  
