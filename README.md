@@ -167,4 +167,69 @@ Trade-offs: every query must filter out deleted rows, and a deleted employee's e
 stays reserved because the unique constraint still applies. For privacy rules, old
 records may eventually need to be anonymised or permanently removed.
 
- 
+ ## Day 5 – Testing, Security & Production
+
+### Run locally
+1. Install PostgreSQL, create the database `employee_db`.
+2. Copy `.env.example` to `.env` and set your password (write `@` as `%40`).
+3. Install packages, create the tables and start the API:
+```bash
+python -m venv venv
+venv\Scripts\activate
+python -m pip install -r requirements.txt
+python create_tables.py
+python -m uvicorn app.main:app --reload
+```
+4. Open http://127.0.0.1:8000/docs (Swagger UI) or http://127.0.0.1:8000/redoc.
+
+### Run the tests
+```bash
+python -m pytest -v
+```
+25 tests: unit tests for the schemas and service layer (`tests/test_unit.py`)
+and API/integration tests through FastAPI (`tests/test_api.py`). Tests use a
+fresh in-memory SQLite database for every test, so the real PostgreSQL data is
+never touched.
+
+### Run with Docker
+1. Create `.env.docker`: the same settings as `.env`, but with
+   `host.docker.internal` instead of `localhost` (so the container can reach
+   PostgreSQL on the host computer).
+2. Build the image and run the container:
+```bash
+docker build -t employee-api .
+docker run --rm -p 8000:8000 --env-file .env.docker --name employee-api employee-api
+```
+3. Open http://127.0.0.1:8000/docs. Stop the container with Ctrl + C.
+
+`.env` and `.env.docker` contain secrets: they are excluded from Git
+(`.gitignore`) and from the image (`.dockerignore`).
+
+### Configuration (environment variables)
+| Variable | Purpose | Default |
+|---|---|---|
+| `DATABASE_URL` | PostgreSQL connection string | required |
+| `APP_ENV` | Environment name | `development` |
+| `LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING` or `ERROR` | `INFO` |
+| `DEFAULT_PAGE_SIZE` | Employees per page by default | `20` |
+| `MAX_PAGE_SIZE` | Largest allowed page size | `100` |
+
+### Production features
+- **Structured logging:** every request is logged as one JSON line with
+  `request_id`, method, path, status and `duration_ms`. The `X-Request-ID`
+  response header matches the logs.
+- **Error handling:** expected errors return clean JSON (`404`, `409`, `422`);
+  database outages return `503`; unexpected errors return a safe `500`
+  message while the full error is logged.
+- **Pagination:** `GET /employees?page=1&size=20` returns
+  `{items, total, page, size, pages}`; `size` is limited to `MAX_PAGE_SIZE`.
+- **OpenAPI/Swagger documentation:** descriptions, summaries, documented
+  error responses and example request bodies.
+
+### Security
+Roles (ADMIN, HR, EMPLOYEE), the permission matrix, and authentication vs
+authorization are documented in [SECURITY.md](SECURITY.md).
+
+### Day 5 Hard Scenario
+How to investigate a slow `/employees` endpoint with 2 million records is
+documented in [PERFORMANCE.md](PERFORMANCE.md).
