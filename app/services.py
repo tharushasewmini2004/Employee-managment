@@ -9,7 +9,7 @@ from app.repositories import DepartmentRepository, EmployeeRepository, LeaveRepo
 from app.schemas import DepartmentCreate, EmployeeCreate, EmployeeUpdate, LeaveCreate
 
 
-# ---------- Business errors (the API turns these into status codes in Part 5) ----------
+# ---------- Business errors (the API turns these into status codes) ----------
 class NotFoundError(Exception):
     """The requested record does not exist."""
 
@@ -76,9 +76,15 @@ class EmployeeService:
             raise DuplicateError(f"Email {email} is already used")
 
     # --- employees ---
-    def list_employees(self, department_id=None, status=None, min_salary=None):
+    def list_employees(self, page=1, size=20, department_id=None, status=None,
+                       min_salary=None):
+        """Return one page of employees plus the totals needed for paging."""
         status_value = status.value if status else None
-        return self.employees.get_all(department_id, status_value, min_salary)
+        offset = (page - 1) * size
+        items = self.employees.get_page(offset, size, department_id, status_value, min_salary)
+        total = self.employees.count(department_id, status_value, min_salary)
+        pages = (total + size - 1) // size  # round up: 21 employees / 20 per page = 2 pages
+        return {"items": items, "total": total, "page": page, "size": size, "pages": pages}
 
     def get_employee(self, employee_id):
         employee = self.employees.get_by_id(employee_id)

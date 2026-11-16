@@ -41,7 +41,8 @@ class EmployeeRepository:
     def _not_deleted(self):
         return select(Employee).where(Employee.deleted_at.is_(None))
 
-    def get_all(self, department_id=None, status=None, min_salary=None):
+    def _filtered(self, department_id=None, status=None, min_salary=None):
+        """The employee query with any filters that were given."""
         query = self._not_deleted()
         if department_id is not None:
             query = query.where(Employee.department_id == department_id)
@@ -49,7 +50,22 @@ class EmployeeRepository:
             query = query.where(Employee.status == status)
         if min_salary is not None:
             query = query.where(Employee.salary >= min_salary)
-        return list(self.db.scalars(query.order_by(Employee.employee_id)))
+        return query
+
+    def get_page(self, offset, limit, department_id=None, status=None, min_salary=None):
+        """Return only one page of employees, sorted by ID."""
+        query = (
+            self._filtered(department_id, status, min_salary)
+            .order_by(Employee.employee_id)
+            .offset(offset)
+            .limit(limit)
+        )
+        return list(self.db.scalars(query))
+
+    def count(self, department_id=None, status=None, min_salary=None):
+        """How many employees match the filters, across all pages."""
+        filtered = self._filtered(department_id, status, min_salary).subquery()
+        return self.db.scalar(select(func.count()).select_from(filtered))
 
     def get_by_id(self, employee_id):
         query = self._not_deleted().where(Employee.employee_id == employee_id)

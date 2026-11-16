@@ -23,9 +23,18 @@ class LeaveStatus(str, Enum):
     REJECTED = "REJECTED"
 
 
+# ---------- Errors ----------
+class ErrorResponse(BaseModel):
+    """Shape of every error response from this API."""
+    detail: str
+
+
 # ---------- Departments ----------
 class DepartmentCreate(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        json_schema_extra={"examples": [{"department_name": "Finance"}]},
+    )
 
     department_name: str = Field(min_length=1, max_length=100)
 
@@ -39,7 +48,16 @@ class DepartmentResponse(BaseModel):
 
 # ---------- Employees ----------
 class EmployeeCreate(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        json_schema_extra={"examples": [{
+            "name": "Sara",
+            "email": "sara@company.com",
+            "department_id": 1,
+            "salary": 85000,
+            "status": "ACTIVE",
+        }]},
+    )
 
     name: str = Field(min_length=1, max_length=100)
     email: EmailStr
@@ -64,8 +82,25 @@ class EmployeeResponse(BaseModel):
     created_at: datetime
 
 
+class EmployeePage(BaseModel):
+    """One page of employees, plus the numbers needed to show 'Page 1 of 5'."""
+    model_config = ConfigDict(from_attributes=True)
+
+    items: list[EmployeeResponse]
+    total: int
+    page: int
+    size: int
+    pages: int
+
+
 # ---------- Leave ----------
 class LeaveCreate(BaseModel):
+    model_config = ConfigDict(json_schema_extra={"examples": [{
+        "leave_type": "ANNUAL",
+        "start_date": "2026-12-01",
+        "end_date": "2026-12-03",
+    }]})
+
     leave_type: LeaveType
     start_date: date
     end_date: date
