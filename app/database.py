@@ -1,17 +1,19 @@
 # app/database.py
-import os
-
-from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-load_dotenv()  # read DATABASE_URL from the .env file
+from app.config import settings
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL is not set. Check your .env file.")
+if not settings.DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is not set. Check your .env file or environment variables.")
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+# Connection pool: keep up to 5 connections open and reuse them, allow 10 extra when busy
+engine = create_engine(
+    settings.DATABASE_URL,
+    pool_pre_ping=True,
+    pool_size=5,
+    max_overflow=10,
+)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 
