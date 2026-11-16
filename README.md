@@ -233,3 +233,8 @@ authorization are documented in [SECURITY.md](SECURITY.md).
 ### Day 5 Hard Scenario
 How to investigate a slow `/employees` endpoint with 2 million records is
 documented in [PERFORMANCE.md](PERFORMANCE.md).
+## Author
+Tharusha – Intern, Day 5 submission
+
+
+
